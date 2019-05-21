@@ -1,0 +1,22 @@
+---
+  - name: Installation des dépendances
+    apt: name={{ item }}
+    with_items:
+      - autoconf
+      - gcc
+      - libc6
+      - libmcrypt-dev
+      - libssl-dev
+      - gawk
+      - dc
+      - build-essential
+      - snmp
+      - libnet-snmp-perl
+      - gettext
+      - make
+      - wget
+      - unzip
+      - apache2-utils
+      - libgd-dev
+      - forensics-all
+      - sshpass

@@ -1,0 +1,10 @@
+mariadb_databases: nextclouddb
+mariadb_users: nextclouduser
+mariadb_root_password: EPSI2019!
+mariadb_user_password: Epsi2019!
+mariadb_Scharacter_set_server: utf8
+mariadb_collation_server: utf8_general_ci
+mariadb_bind_address: 127.0.0.1 192.168.1.117
+mariadb_port: 3306
+mariadb_host: 192.168.1.119
+mariadb_serv_nextcloud: 192.168.1.117

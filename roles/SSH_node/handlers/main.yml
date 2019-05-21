@@ -1,0 +1,5 @@
+---
+  - name: nagios reload
+    service:
+      name: nagios
+      state: reloaded

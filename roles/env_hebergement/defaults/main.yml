@@ -1,0 +1,5 @@
+---
+env_url: cloud.loc
+env_user: NTAdmin
+env_user_pws: Epsi2019!
+ip_mariadb: 192.168.1.119

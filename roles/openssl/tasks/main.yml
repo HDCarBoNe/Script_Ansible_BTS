@@ -1,0 +1,15 @@
+---
+  - name: Installation Python pip
+    apt: name=python-pip state=latest
+
+  - name: Installation OpenSSL
+    apt: name=openssl state=latest
+
+  - name: Installation PyOpenssl
+    shell: pip install pyopenssl
+    args:
+      executable: /bin/bash
+      warn:       False
+
+  - name: Generate a Self Signed OpenSSL certificate
+    command: openssl req -new -nodes -x509 -subj "/C=FR/ST=LOIRE-ATLANTIQUE/L=NANTES/O=IT/CN=${ansible_fqdn}" -days 3650 -keyout /etc/ssl/{{ env_url }}.key -out /etc/ssl/{{ env_url }}.crt -extensions v3_ca creates=/etc/ssl/{{ env_url }}.crt

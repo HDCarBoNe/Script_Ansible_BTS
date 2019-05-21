@@ -1,0 +1,77 @@
+env_url: nagios.loc
+env_user: nagiosadmin
+php_packages:
+  - php7.3-fpm
+  - php7.3-curl
+  - php7.3-gd
+  - php7.3-xml
+  - php7.3-zip
+  - php7.3-mbstring
+  - php7.3-intl
+  - php7.3-bcmath
+  - php7.3-mysql
+  - libapache2-mod-php7.3
+  - php7.3-json
+  - php-imagick
+  - php7.3-opcache
+php_timezone: Europe/Paris
+php_listen: /var/run/php/php7.3-fpm-{{ env_user }}.sock
+php_listen_owner: www_data
+php_listen_group: www_data
+php_listen_modes: 0660
+php_pm: dynamic
+php_pm_max_child: 20
+php_pm_start_server: 10
+php_pm_min_spare_server: 5
+php_pm_max_spare_server: 19
+php_pm_max_requests: 500
+php_request_terminate_timeout: 45s
+php_admin_value_basedir: ".:/var/www/{{ env_url }}/www:/var/www/{{ env_url }}/var/tmp:/usr/share/php"
+php_value_path: ".:/var/www/{{ env_url }}/www:/var/www/{{ env_url }}/www/include"
+#Upload
+php_admin_flag_upload: 1
+php_admin_value_upload_temp_dir: "/var/www/{{ env_url }}/var/tmp/upload"
+php_admin_value_upload_cache_dir: "/var/www/{{ env_url }}/var/tmp"
+php_admin_value_upload_max_filesize: "10M"
+php_admin_value_upload_max_input_time: 120
+php_admin_value_post_max_size: "10M"
+php_admin_value_max_input_vars: "8500"
+#LOG
+php_admin_value_error_log: /var/www/{{ env_url }}/var/log/php/error.log
+php_admin_flag_log_error: on
+php_admin_value_log_error: 1
+php_admin_value_display_error: 0
+php_admin_value_display_startup_error: 1
+php_admin_value_html_error: 1
+php_admin_value_define_syslog: 1
+php_value_error_reporting: 6143
+php_request_slowlog_timeout: 30s
+php_slowlog: /var/log/fpm-slow.log
+php_value_max_input_time: "120"
+php_value_max_execution_time: "300"
+php_value_memory_limit: "512M"
+php_value_session_gc_maxlifetime: 3600
+php_admin_value_session_gc_probability: 1
+php_admin_value_session_gc_divisor: 100
+#Security
+php_admin_value_magic_quote: 0
+php_admin_value_register_global: 0
+php_admin_value_session_auto_start: 0
+php_admin_value_session_maxlifetime: 3600
+php_value_session_save_path: '/var/www/{{ env_url }}/var/sessions'
+php_admin_value_mbstring_http_input: "pass"
+php_admin_value_mbstring_http_output: "pass"
+php_admin_value_mbstring_encod_transl: 0
+php_admin_value_expose_php: 0
+php_admin_value_allow_url_fopen: 1
+php_admin_value_safe_mode: 0
+php_admin_value_cgi_fix_pathinfo: 1
+php_admin_value_cgi_discard_path: 0
+#Opcache
+php_admin_value_op_enable: 0
+php_admin_value_op_enable_cli: 1
+php_admin_value_op_interned_string: "8"
+php_admin_value_op_max_accele_file: "10000"
+php_admin_value_op_memory_consu: "128"
+php_admin_value_op_save_comments: 1
+php_admin_value_op_revalidate_freq: 1

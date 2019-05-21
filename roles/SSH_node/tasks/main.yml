@@ -1,0 +1,71 @@
+---
+  - name: Génération des clés pour les nodes
+    shell: |
+      mkdir -p /home/nagios/.ssh
+      chown -R nagios: /home/nagios
+
+  - name: Generation clé RSA
+    command : ssh-keygen -q -t rsa -f /usr/local/nagios/etc/nagioskey -C "" -N ""
+    args:
+      creates: /usr/local/nagios/etc/nagioskey
+
+  - name: Copie des clés sur les nodes
+    shell: |
+      cd /usr/local/nagios/etc/
+      sshpass -p {{ mdp_cloud }} ssh-copy-id -i nagioskey -o StrictHostKeyChecking=no root@{{ node_cloud }}
+      sshpass -p {{ mdp_bdd }} ssh-copy-id -i nagioskey -o StrictHostKeyChecking=no root@{{ node_bdd }}
+      mkdir hosts services
+
+  - name: Configuration nagios
+    file:
+      path: /usr/local/nagios/etc/commands.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/commands.cfg
+      content: |
+        define command{
+          command_name check_by_ssh
+          command_line $USER1$/check_by_ssh -H $HOSTADDRESS$ -l root -i /usr/local/nagios/etc/nagioskey $ARG1$
+        }
+
+  - name: Insertion des configuration dans nagios.cfg
+    blockinfile:
+      path: /usr/local/nagios/etc/nagios.cfg
+      block: |
+        cfg_file=/usr/local/nagios/etc/commands.cfg
+        cfg_dir=/usr/local/nagios/etc/hosts
+        cfg_dir=/usr/local/nagios/etc/services
+
+  - name: Définition de la node Nextcloud
+    file:
+      path: /usr/local/nagios/etc/hosts/nextcloud.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/hosts/nextcloud.cfg
+      content: |
+        define host{
+          use linux-server
+          host_name nextcloud
+          alias nextcloud
+          address {{ node_cloud }}
+        }
+
+  - name: Définition de la node Base de données
+    file:
+      path: /usr/local/nagios/etc/hosts/bdd.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/hosts/bdd.cfg
+      content: |
+        define host{
+          use linux-server
+          host_name bdd
+          alias bdd
+          address {{ node_bdd }}
+        }
+
+  - name: Reload nagios
+    shell: systemctl reload nagios

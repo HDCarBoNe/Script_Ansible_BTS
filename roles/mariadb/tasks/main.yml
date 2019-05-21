@@ -1,0 +1,53 @@
+---
+  - name: Installation MariaDB
+    apt: name={{ item }}
+    with_items:
+      - mariadb-server
+      - mariadb-client
+
+  - name: Ajout Python Mysql
+    apt: name=python-mysqldb
+
+  # set Mots de passe Root
+  - name: Configuration MariaDB (1/4)
+    mysql_user:
+      user: root
+      password: "{{ mariadb_root_password }}"
+      host: localhost
+      state: present
+
+  # Remove Utilisateurs anonymes
+  - name: Configuration MariaDB (2/4)
+    mysql_user: user="" state=absent
+
+  #Remove accès root
+  - name: Configuration MariaDB (3/4)
+    mysql_user: user="root" password="{{ mariadb_root_password }}" host="::1"
+  - mysql_user: user="root" password="{{ mariadb_root_password}}" host="127.0.0.1"
+  - mysql_user: user="root" password="{{ mariadb_root_password}}" host="localhost"
+  - mysql_user: user="root" password="{{ mariadb_root_password}}" host="{{ mariadb_bind_address }}"
+
+  #Remove Db test
+  - name: Configuration MariaDB(4/4)
+    mysql_db: db=test state=absent
+
+  - name: Création Database pour NextCloud
+    mysql_db:
+      name: "{{ mariadb_databases }}"
+      state: present
+
+  - name: Création de l'utilisateur "{{ mariadb_users }}" pour la Database "{{ mariadb_databases }}"
+    mysql_user:
+      name: "{{ mariadb_users }}"
+      host: "{{ mariadb_serv_nextcloud }}"
+      password: "{{ mariadb_user_password }}"
+      priv: "{{ mariadb_databases}}.*:ALL,GRANT"
+      state: present
+
+  - name: Configuration mariadb bind_ip
+    lineinfile: dest=/etc/mysql/mariadb.conf.d/50-server.cnf regexp='bind-address' line='bind-address={{ mariadb_host }}'
+
+  - name: mariadb restart
+    service:
+     name: mysql
+     state: restarted

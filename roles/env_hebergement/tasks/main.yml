@@ -1,0 +1,121 @@
+---
+  - name:         Arboresence des répertoires
+    shell:        mkdir -p  /var/www/{{ env_url }}/{etc,var/log/{apache2,php,deploy},var/tmp/upload,var/sessions}
+    args:
+      executable: /bin/bash
+      warn:       False
+
+  - name:         Création de l'utilisateur {{ env_user }}
+    shell:        |
+      useradd -s /bin/bash -d /var/www/{{ env_url }}/ {{ env_user }}
+      usermod -a -G {{ env_user }} www-data
+
+  - name:         Creation du fichier config pour le site
+    file:
+      path:       "/var/www/{{ env_url }}/etc/{{ env_url }}.conf"
+      state:      touch
+
+  - copy:
+      dest:       "/var/www/{{ env_url }}/etc/{{ env_url }}.conf"
+      content:    |
+        <VirtualHost *:80>
+          ServerName {{ env_url }}
+          Redirect Permanent / https://{{ env_url }}/
+          #ServerAdmin contact@NTtest.fr
+          #DocumentRoot /var/www/{{ env_url }}/nextcloud/
+          #ServerName {{ env_url }}
+          #<Directory /var/www/{{ env_url }}/nextcloud/>
+            #Options MultiViews FollowSymlinks
+            #AllowOverride All
+            #Order allow,deny
+            #Allow from all
+          #</Directory>
+          #TransferLog /var/log/apache2/nextcloud_access.log
+          #ErrorLog /var/log/apache2/nextcloud_error.log
+        </VirtualHost>
+        <VirtualHost *:443>
+          ServerName {{ env_url }}
+          LogLevel warn
+          ErrorLog "|/usr/bin/rotatelogs -lc /var/www/{{ env_url }}/var/log/apache2/error.%Y.%m.%d 86400"
+          CustomLog "|/usr/bin/rotatelogs -lc /var/www/{{ env_url }}/var/log/apache2/access.%Y.%m.%d 86400" combined
+          SSLEngine on
+          SSLCertificateFile      /etc/ssl/{{ env_url }}.crt
+          SSLCertificateKeyFile   /etc/ssl/{{ env_url }}.key
+          #HSTS (mod_headers is required) (15768000 seconds = 6 months)
+          Header always set Strict-Transport-Security "max-age=15768000"
+          Header always set x-xss-protection "1; mode=block"
+          Header always set x-frame-options "SAMEORIGIN"
+          Header always set X-Content-Type-Options "nosniff"
+          Header always set Referrer-Policy "no-referrer"
+          Header always set Content-Security-Policy "default-src 'https:';"
+          Header always set Feature-Policy "geolocation 'none'; midi 'none'; notifications 'none'; push 'none'; sync-xhr 'none'; microphone 'none'; camera 'none'; magnetometer 'none'; gyroscope 'none'; speaker 'none'; vibrate 'none'; fullscreen 'none'; payment 'none'"
+          <FilesMatch ".+\.ph(p[3457]?|t|tml)$">
+              SetHandler "proxy:unix:/var/run/php/php7.3-fpm-{{ env_user }}.sock|fcgi://localhost"
+          </FilesMatch>
+          <FilesMatch ".+\.phps$">
+              Require all denied
+          </FilesMatch>
+          <FilesMatch "^\.ph(p[3457]?|t|tml|ps)$">
+              Require all denied
+          </FilesMatch>
+          DocumentRoot /var/www/{{ env_url }}/nextcloud
+          <Directory /var/www/{{ env_url }}/nextcloud/>
+            Order allow,deny
+            Allow from all
+            AllowOverride All
+            DirectoryIndex index.php
+           </Directory>
+        </VirtualHost>
+        SSLProtocol             -all +TLSv1.2
+        SSLCipherSuite      +HIGH:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-ECDSA-CHACHA20-POLY1305-D:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305-D:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:DHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305-D:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-CAMELLIA256-SHA:ECDHE-ECDSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA
+        SSLHonorCipherOrder     on
+        SSLCompression          off
+        SSLSessionTickets       off
+        # OCSP Stapling, only in httpd 2.3.3 and later
+        SSLUseStapling          on
+        SSLStaplingResponderTimeout 5
+        SSLStaplingReturnResponderErrors off
+        SSLStaplingCache        shmcb:/var/run/ocsp(128000)
+
+  - name:         Installation de unzip
+    apt:          name=unzip
+
+  - name:         Installation de NextCloud 16
+    shell:        |
+      wget https://download.nextcloud.com/server/releases/nextcloud-16.0.0.zip
+      unzip nextcloud-16.0.0.zip -d /var/www/{{ env_url }}/
+      rm nextcloud-16.0.0.zip
+    args:
+      executable: /bin/bash
+      warn:       False
+
+  - name:         Modification des droits pour Nextcloud
+    shell:        |
+      cd /var/www/{{ env_url }}/
+      chown -R {{ env_user }}: ../{{ env_url }}/
+      chmod 2770 ../{{ env_url }}/
+      find ./ -type d -exec chmod 2770 {} +
+      find ./ -type f -exec chmod 660 {} +
+      cd /etc/apache2/sites-available/
+      ln -s /var/www/{{ env_url }}/etc/{{ env_url }}.conf {{ env_url }}.conf
+      a2ensite {{ env_url }}
+      a2enmod headers
+      a2enmod env
+      a2enmod ssl
+      a2enmod dir
+      a2enmod setenvif
+      a2enconf php7.3-fpm
+      a2dissite 000-default
+      systemctl reload apache2
+    args:
+      executable: /bin/bash
+      warn: false
+
+  - name: Retrait des fonctions dangereuses
+    lineinfile: dest=/var/www/{{ env_url }}/nextcloud/config/config.sample.php regexp='\'dbhost\' => \'\',' line='\'dbhost\' => \'{{ ip_mariadb }}\','
+  - lineinfile: dest=/var/www/{{ env_url }}/nextcloud/config/config.sample.php regexp='\'dbname\' => \'nextcloud\',' line='\'dbname\' => \'nextclouddb\','
+  - lineinfile: dest=/var/www/{{ env_url }}/nextcloud/config/config.sample.php regexp='\'dbuser\' => \'\',' line='\'dbuser\' => \'nextclouduser\','
+  - lineinfile: dest=/var/www/{{ env_url }}/nextcloud/config/config.sample.php regexp='\'dbpassword\' => \'\',' line='\'dbpassword\' => \'EPSI2018!\','
+  - lineinfile: dest=/var/www/{{ env_url }}/nextcloud/config/config.sample.php regexp='\'default_language\' => \'en\',' line='\'default_language\' => \'fr\','
+  - lineinfile: dest=/var/www/{{ env_url }}/nextcloud/config/config.sample.php regexp='\'default_locale\' => \'en_US\',' line='\'default_locale\' => \'fr_FR\','
+  #- lineinfile: dest=/var/www/{{ env_url }}/nextcloud/config/config.sample.php regexp='\'dbtype\' => \'sqlite3\',' line='\'dbtype\' => 'mysql\','

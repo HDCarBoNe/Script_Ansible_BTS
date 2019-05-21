@@ -1,0 +1,158 @@
+---
+  - name: Installation Apache2 latest
+    apt: name=apache2 state=latest
+
+  - name: Préparation installation de PHP 7.3 (1/2)
+    apt: name={{ item }}
+    with_items:
+      - software-properties-common
+      - apt-transport-https
+      - lsb-release
+      - ca-certificates
+      - curl
+
+  - name: Préparation installation de PHP7.3 (2/2)
+    shell: |
+      if [ "$(whoami)" != "root" ]; then
+          SUDO=sudo
+      fi
+      ${SUDO} curl -ssL -o /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+      ${SUDO} sh -c 'echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+      ${SUDO} apt-get update
+      exit 0
+    args:
+      executable: /bin/bash
+
+  - name: Installation de PHP 7.3 et des modules
+    apt: name='{{ php_packages }}' state=latest
+
+  - name: Retrait des fonctions dangereuses
+    lineinfile: dest=/etc/php/7.3/fpm/php.ini regexp='disable_functions[\s]?=' line='disable_functions = exec,passthru, shell_exec,proc_open,popen,system,curl_exec,curl_multi_exec,parse_ini_file,show_source,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signasignal,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority'
+  - lineinfile: dest=/etc/php/7.3/fpm/php.ini regexp='allow_url_fopen[\s]?=' line='allow_url_fopen = off'
+  - lineinfile: dest=/etc/php/7.3/fpm/php.ini regexp='allow_url_include[\s]?=' line='allow_url_include = off'
+  - lineinfile: dest=/etc/php/7.3/fpm/php.ini regexp=';date.timezone[\s]?=' line='date.timezone = {{ php_timezone }}'
+
+  - name: Création de la configuration pour php7.3
+    file:
+      path: /etc/php/7.3/fpm/pool.d/{{ env_url }}.conf
+      state: touch
+
+  - name: Parametrage de php (2/2)
+    copy:
+      dest: /etc/php/7.3/fpm/pool.d/{{ env_url }}.conf
+      content: |
+        [{{ env_user}}]
+        user = {{ env_user }}
+        group = {{ env_user }}
+
+        listen = {{ php_listen }}
+        listen.owner = {{ php_listen_owner }}
+        listen.group = {{ php_listen_group }}
+        listen.mode = {{ php_listen_modes }}
+
+        pm = {{ php_pm }}
+        pm.max_children = {{ php_pm_max_child }}
+        pm.start_servers = {{ php_pm_start_server }}
+        pm.min_spare_servers = {{ php_pm_min_spare_server }}
+        pm.max_spare_servers = {{ php_pm_max_spare_server }}
+        pm.max_requests = {{ php_pm_max_requests }}
+        ;request_terminate_timeout = {{ php_request_terminate_timeout }}
+
+        php_admin_value[open_basedir] = {{ php_admin_value_basedir }}
+        php_value[include_path]= {{ php_value_path }}
+
+        ; UPLOAD
+        php_admin_flag[file_uploads]= {{ php_admin_flag_upload }}
+        php_admin_value[upload_tmp_dir]={{ php_admin_value_upload_temp_dir }}
+        php_admin_value[cache_dir]={{ php_admin_value_upload_cache_dir }}
+
+        ;Maximum allowed size for uploaded files.
+        php_admin_value[upload_max_filesize]={{ php_admin_value_upload_max_filesize }}
+        php_admin_value[max_input_time]={{ php_admin_value_upload_max_input_time }}
+        php_admin_value[post_max_size]={{ php_admin_value_post_max_size }}
+        php_admin_value[max_input_vars]={{ php_admin_value_max_input_vars }}
+
+        ;#### LOGS
+        php_admin_value[error_log] = {{ php_admin_value_error_log }}
+        php_admin_flag[log_errors] = {{ php_admin_flag_log_error }}
+        php_admin_value[log_errors]={{ php_admin_value_log_error }}
+        ;php_flag[display_errors] = on
+        php_admin_value[display_errors]={{ php_admin_value_display_error }}
+        php_admin_value[display_startup_errors]={{ php_admin_value_display_startup_error }}
+        php_admin_value[html_errors]={{ php_admin_value_html_error }}
+        php_admin_value[define_syslog_variables]={{ php_admin_value_define_syslog }}
+        php_value[error_reporting]={{ php_value_error_reporting }}
+        request_slowlog_timeout = {{ php_request_slowlog_timeout }}
+        slowlog = {{ php_slowlog }}
+        ; Maximum execution time of each script, in seconds (30)
+        php_value[max_input_time]={{ php_value_max_input_time }}
+        ; Maximum amount of time each script may spend parsing request data
+        php_value[max_execution_time]={{ php_value_max_execution_time }}
+        ; Maximum amount of memory a script may consume (8MB)
+        php_value[memory_limit]={{ php_value_memory_limit }}
+
+        ; Sessions: IMPORTANT reactivate garbage collector on Debian!!!
+        php_value[session.gc_maxlifetime]={{ php_value_session_gc_maxlifetime }}
+        php_admin_value[session.gc_probability]={{ php_admin_value_session_gc_probability }}
+        php_admin_value[session.gc_divisor]={{ php_admin_value_session_gc_divisor }}
+
+        ; SECURITY
+        php_admin_value[magic_quotes_gpc]={{ php_admin_value_magic_quote }}
+        php_admin_value[register_globals]={{ php_admin_value_register_global }}
+        php_admin_value[session.auto_start]={{ php_admin_value_session_auto_start }}
+        php_admin_value[session.gc_maxlifetime]={{ php_admin_value_session_maxlifetime }}
+        php_value[session.save_path]={{php_value_session_save_path }}
+        php_admin_value[mbstring.http_input]={{ php_admin_value_mbstring_http_input }}
+        php_admin_value[mbstring.http_output]={{ php_admin_value_mbstring_http_output }}
+        php_admin_value[mbstring.encoding_translation]={{ php_admin_value_mbstring_encod_transl }}
+        php_admin_value[expose_php]={{ php_admin_value_expose_php }}
+        php_admin_value[allow_url_fopen]={{ php_admin_value_allow_url_fopen }}
+        php_admin_value[safe_mode]={{ php_admin_value_safe_mode }}
+
+        ; enforce filling PATH_INFO & PATH_TRANSLATED
+        ; and not only SCRIPT_FILENAME
+        php_admin_value[cgi.fix_pathinfo]={{ php_admin_value_cgi_fix_pathinfo }}
+        ; 1: will use PATH_TRANSLATED instead of SCRIPT_FILENAME
+        php_admin_value[cgi.discard_path]={{ php_admin_value_cgi_discard_path }}
+
+
+        ; OPCACHE
+        php_admin_value[opcache.enable] = {{ php_admin_value_op_enable }}
+        php_admin_value[opcache.enable_cli] = {{ php_admin_value_op_enable_cli }}
+        php_admin_value[opcache.interned_strings_buffer] = {{ php_admin_value_op_interned_string }}
+        php_admin_value[opcache.max_accelerated_files] = {{ php_admin_value_op_max_accele_file }}
+        php_admin_value[opcache.memory_consumption] = {{ php_admin_value_op_memory_consu }}
+        php_admin_value[opcache.save_comments] = {{ php_admin_value_op_save_comments }}
+        php_admin_value[opcache.revalidate_freq] = {{ php_admin_value_op_revalidate_freq }}
+
+        chdir = /
+  - name: activation des mods et configuration apache2
+    shell: a2enmod proxy_fcgi setenvif
+  - shell: a2enconf php7.3-fpm
+  - shell: a2enmod headers
+
+  - name: Sécurisation apache
+    lineinfile: dest=/etc/apache2/conf-available/security.conf regexp='ServerTokens OS' line='ServerTokens Prod'
+  - lineinfile: dest=/etc/apache2/conf-available/security.conf regexp='ServerSignature On' line='#ServerSignature On'
+  - lineinfile: dest=/etc/apache2/conf-available/security.conf regexp='#ServerSignature Off' line='ServerSignature Off'
+  #- lineinfile: dest=/etc/apache2/conf-available/security.conf regexp='#Header set X-Frame-Options: \"sameorigin\"' line='Header set X-Frame-Options: \"sameorigin\"'
+  #- lineinfile: dest=/etc/apache2/conf-available/security.conf regexp='#Header set X-Content-Type-Options: \"nosniff\"' line='Header set X-Content-Type-Options: \"nosniff\"'
+  - blockinfile:
+      path: /etc/apache2/conf-available/security.conf
+      block: |
+        <Directory />
+          Options -Indexes -ExecCGI -FollowSymlinks
+          AllowOverride None
+          Require all denied
+        </Directory>
+
+        <Directory />
+          Require all granted
+        </Directory>
+        <DirectoryMatch "/\.svn">
+          Require all denied
+        </DirectoryMatch>
+        <DirectoryMatch "/\.git">
+          Require all denied
+        </DirectoryMatch>
+    notify: apache restart

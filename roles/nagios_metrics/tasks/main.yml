@@ -1,0 +1,122 @@
+---
+  - name: Installation métriques RAM sur nagios(1/8)
+    file:
+      path: /usr/local/nagios/etc/services/nextcloud-ram.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/nextcloud-ram.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name nextcloud
+          service_description Ram Libre
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_ram -f -w 20 -c 10"
+        }
+
+  - name: Installation métriques RAM sur nagios(2/8)
+    file:
+      path: /usr/local/nagios/etc/services/nextcloud-disk.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/nextcloud-disk.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name nextcloud
+          service_description Disque Libre
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_disk -l -u GB -E /dev/sda1"
+        }
+
+  - name: Installation métriques RAM sur nagios(3/8)
+    file:
+      path: /usr/local/nagios/etc/services/nextcloud-apache.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/nextcloud-apache.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name nextcloud
+          service_description Etat apache
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_ram -f -w 20 -c 10"
+        }
+
+  - name: Installation métriques RAM sur nagios(4/8)
+    file:
+      path: /usr/local/nagios/etc/services/nextcloud-ionet.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/nextcloud-ionet.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name nextcloud
+          service_description I/O network
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_ram -f -w 20 -c 10"
+        }
+
+  - name: Installation métriques RAM sur nagios(5/8)
+    file:
+      path: /usr/local/nagios/etc/services/bdd-ram.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/bdd-ram.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name bdd
+          service_description Ram Libre
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_ram -f -w 20 -c 10"
+        }
+
+  - name: Installation métriques RAM sur nagios(6/8)
+    file:
+      path: /usr/local/nagios/etc/services/bdd-disk.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/bdd-disk.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name bdd
+          service_description Disque Libre
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_ram -f -w 20 -c 10"
+        }
+
+  - name: Installation métriques RAM sur nagios(7/8)
+    file:
+      path: /usr/local/nagios/etc/services/bdd-cpu.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/bdd-cpu.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name bdd
+          service_description Charges CPU
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_ram -f -w 20 -c 10"
+        }
+
+  - name: Installation métriques RAM sur nagios(8/8)
+    file:
+      path: /usr/local/nagios/etc/services/bdd-mariadb.cfg
+      state: touch
+
+  - copy:
+      dest: /usr/local/nagios/etc/services/bdd-mariadb.cfg
+      content: |
+        define service{
+          use generic-service
+          host_name bdd
+          service_description Etat BDD
+          check_command check_by_ssh! -s sshload -C "/usr/lib/nagios/plugins/check_ram -f -w 20 -c 10"
+        }
+  - name: Mise à jours des métriques nagios
+    shell: systemctl reload nagios

@@ -1,0 +1,4 @@
+node_cloud: 192.168.1.117
+node_bdd: 192.168.1.119
+mdp_cloud: azerty123
+mdp_bdd: azerty123

@@ -1,0 +1,6 @@
+---
+  - name: Dependances pour nagios
+    apt: name={{ item }}
+    with_items:
+      - nagios-plugins
+      - check-postgres
