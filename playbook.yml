@@ -1,0 +1,18 @@
+---
+- name: Installation du Projet BTS SIO 1/2
+  hosts: Nextcloud
+  vars:
+    http_port: 80
+    max_client: 200
+  remote_user: root
+  roles:
+    -apache2
+    -lets_encrypt
+    -env_hebergement
+    -collabora
+
+- name: Installation du Projet BTS SIO 2/2
+  hosts: BDD
+  remote_user: root
+  roles:
+    - mariadb

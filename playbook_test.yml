@@ -1,0 +1,36 @@
+# Probleme certificat SSL reconnu par le serveur apache2 sur nextcloud
+---
+- name: Installation Nextcloud
+  hosts: Nextcloud
+  vars:
+    http_port: 80
+    max_clients: 200
+  remote_user: root
+  roles:
+    - apache2
+    - openssl
+    - env_hebergement
+    - nagios_nodes
+
+- name: Installation Base de données
+  hosts: BDD
+  vars:
+    http_port: 80
+    max_clients: 200
+  remote_user: root
+  roles:
+    - mariadb
+    - nagios_nodes
+- name: Installation Supervision
+  hosts: Supervision
+  vars:
+     http_port: 80
+     max_clients: 200
+  remote_user: root
+  roles:
+    - apache2
+    - dependances
+    - nagios
+    - NagiosPlugins
+    - SSH_node
+    - nagios_metrics
